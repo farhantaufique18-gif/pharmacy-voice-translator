@@ -16,7 +16,9 @@ app.get('/translate', (req, res) => {
 
   const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(
     text
-  )}&langpair=${encodeURIComponent(from)}|${encodeURIComponent(to)}`;
+  )}&langpair=${encodeURIComponent(from)}|${encodeURIComponent(to)}&de=${encodeURIComponent(
+    process.env.TRANSLATE_CONTACT_EMAIL || ''
+  )}`;
 
   https
     .get(url, (apiRes) => {
