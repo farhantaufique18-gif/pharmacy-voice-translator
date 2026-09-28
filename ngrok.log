@@ -1,0 +1,9 @@
+t=2026-09-28T14:50:39+0400 lvl=info msg="no configuration paths supplied"
+t=2026-09-28T14:50:39+0400 lvl=info msg="using configuration at default config path" path=C:\Users\91971\AppData\Local\ngrok\ngrok.yml
+t=2026-09-28T14:50:39+0400 lvl=info msg="open config file" path=C:\Users\91971\AppData\Local\ngrok\ngrok.yml err=<nil>
+t=2026-09-28T14:50:39+0400 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-09-28T14:50:39+0400 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4040 allow_hosts=[]
+t=2026-09-28T14:50:39+0400 lvl=info msg="client session established" obj=tunnels.session
+t=2026-09-28T14:50:39+0400 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-09-28T14:50:40+0400 lvl=info msg="started tunnel" obj=tunnels name=command_line addr=http://localhost:3001 url=https://mocker-hypnotism-modulator.ngrok-free.dev
+t=2026-09-28T14:50:55+0400 lvl=info msg="join connections" obj=join id=85fb82035e11 l=[::1]:3001 r=31.215.89.202:56152

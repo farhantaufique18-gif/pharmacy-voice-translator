@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Aster Pharmacy Voice Translator</title>
+<style>
+  body {
+    font-family: system-ui, sans-serif;
+    max-width: 900px;
+    margin: 30px auto;
+    padding: 0 16px;
+    color: #222;
+    background: #f7f7f8;
+  }
+  h1 { font-size: 1.4rem; margin-bottom: 4px; }
+  p.sub { color: #666; margin-top: 0; }
+  .columns {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .panel {
+    flex: 1;
+    min-width: 280px;
+    background: #fff;
+    border-radius: 12px;
+    padding: 18px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .panel h2 { font-size: 1.05rem; margin-top: 0; }
+  select {
+    width: 100%;
+    padding: 8px;
+    font-size: 1rem;
+    margin-bottom: 12px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+  }
+  .mic-btn {
+    width: 100%;
+    padding: 16px;
+    font-size: 1.1rem;
+    border: none;
+    border-radius: 8px;
+    background: #1a7f5a;
+    color: #fff;
+    cursor: pointer;
+  }
+  .mic-btn.listening {
+    background: #c0392b;
+  }
+  .mic-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .transcript, .translation {
+    margin-top: 14px;
+    padding: 12px;
+    border-radius: 8px;
+    min-height: 48px;
+    font-size: 1.05rem;
+    line-height: 1.4;
+  }
+  .transcript { background: #f0f0f0; color: #444; }
+  .translation { background: #eaf7f0; color: #14532d; font-weight: 600; }
+  .label { font-size: 0.75rem; text-transform: uppercase; color: #888; margin-bottom: 4px; }
+  #error {
+    color: #c0392b;
+    margin-top: 16px;
+    display: none;
+  }
+</style>
+</head>
+<body>
+  <h1>Aster Pharmacy Voice Translator</h1>
+  <p class="sub">Speak on one side, the customer hears the translation on the other. Free, runs in your browser.</p>
+
+  <div class="columns">
+    <div class="panel">
+      <h2>You</h2>
+      <select id="langA">
+        <option value="en">English</option>
+        <option value="ar">Arabic</option>
+        <option value="hi">Hindi</option>
+        <option value="tl">Filipino (Tagalog)</option>
+        <option value="ne">Nepali</option>
+        <option value="bn">Bengali</option>
+      </select>
+      <button class="mic-btn" id="micA">🎤 Hold to talk (You)</button>
+      <div class="label">Heard</div>
+      <div class="transcript" id="transcriptA"></div>
+      <div class="label">Translated for customer</div>
+      <div class="translation" id="translationA"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Customer</h2>
+      <select id="langB">
+        <option value="ar">Arabic</option>
+        <option value="hi">Hindi</option>
+        <option value="tl">Filipino (Tagalog)</option>
+        <option value="ne">Nepali</option>
+        <option value="bn">Bengali</option>
+        <option value="en">English</option>
+      </select>
+      <button class="mic-btn" id="micB">🎤 Hold to talk (Customer)</button>
+      <div class="label">Heard</div>
+      <div class="transcript" id="transcriptB"></div>
+      <div class="label">Translated for you</div>
+      <div class="translation" id="translationB"></div>
+    </div>
+  </div>
+
+  <div id="error"></div>
+
+  <script>
+    const speechLangMap = {
+      en: 'en-US',
+      ar: 'ar-SA',
+      hi: 'hi-IN',
+      tl: 'fil-PH',
+      ne: 'ne-NP',
+      bn: 'bn-BD',
+    };
+
+    const errorEl = document.getElementById('error');
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      errorEl.style.display = 'block';
+      errorEl.textContent =
+        'Your browser does not support voice recognition. Please use Google Chrome or Microsoft Edge.';
+    }
+
+    function setupSide(sideId, otherSideId) {
+      const label = sideId === 'A' ? 'You' : 'Customer';
+      const micBtn = document.getElementById('mic' + sideId);
+      const langSel = document.getElementById('lang' + sideId);
+      const otherLangSel = document.getElementById('lang' + otherSideId);
+      const transcriptEl = document.getElementById('transcript' + sideId);
+      const myTranslationEl = document.getElementById('translation' + sideId);
+
+      let recognition;
+      let listening = false;
+
+      if (SpeechRecognition) {
+        recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+
+        recognition.onresult = async (event) => {
+          const said = event.results[0][0].transcript;
+          transcriptEl.textContent = said;
+          await translateAndSpeak(said, langSel.value, otherLangSel.value, myTranslationEl);
+        };
+
+        recognition.onerror = (event) => {
+          errorEl.style.display = 'block';
+          errorEl.textContent = 'Voice recognition error: ' + event.error;
+          stopListening();
+        };
+
+        recognition.onend = () => {
+          stopListening();
+        };
+      }
+
+      function startListening() {
+        if (!recognition) return;
+        errorEl.style.display = 'none';
+        recognition.lang = speechLangMap[langSel.value] || 'en-US';
+        transcriptEl.textContent = '';
+        myTranslationEl.textContent = '';
+        recognition.start();
+        listening = true;
+        micBtn.classList.add('listening');
+        micBtn.textContent = '🔴 Listening...';
+      }
+
+      function stopListening() {
+        listening = false;
+        micBtn.classList.remove('listening');
+        micBtn.textContent = '🎤 Hold to talk (' + label + ')';
+      }
+
+      micBtn.addEventListener('click', () => {
+        if (!SpeechRecognition) return;
+        if (listening) {
+          recognition.stop();
+        } else {
+          startListening();
+        }
+      });
+    }
+
+    async function translateAndSpeak(text, fromLang, toLang, translationEl) {
+      translationEl.textContent = 'Translating...';
+      try {
+        const res = await fetch(
+          `/translate?text=${encodeURIComponent(text)}&from=${fromLang}&to=${toLang}`
+        );
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Translation failed');
+
+        translationEl.textContent = data.translatedText;
+        speak(data.translatedText, toLang);
+      } catch (err) {
+        translationEl.textContent = '';
+        errorEl.style.display = 'block';
+        errorEl.textContent = 'Translation error: ' + err.message;
+      }
+    }
+
+    function speak(text, lang) {
+      if (!window.speechSynthesis) return;
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = speechLangMap[lang] || 'en-US';
+      window.speechSynthesis.speak(utter);
+    }
+
+    setupSide('A', 'B');
+    setupSide('B', 'A');
+  </script>
+</body>
+</html>
